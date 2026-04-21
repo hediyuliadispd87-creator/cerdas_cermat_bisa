@@ -255,6 +255,67 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 @keyframes correctFlash{0%{background:rgba(0,232,122,.4)}100%{background:rgba(0,232,122,.1)}}
 @keyframes wrongShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
 
+/* ===== ROOM GAME PARTICIPANTS LIST ===== */
+.room-participants{
+  background:var(--panel);
+  border:1px solid rgba(255,255,255,.08);
+  padding:20px;
+  margin-top:24px;
+  border-radius:4px;
+}
+.room-participants h4{
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--dim);
+  letter-spacing:2px;
+  text-transform:uppercase;
+  margin-bottom:14px;
+}
+.participants-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(100px,1fr));
+  gap:8px;
+}
+.participant-item{
+  background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.08);
+  padding:8px 10px;
+  border-radius:3px;
+  text-align:center;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  position:relative;
+  transition:all .2s;
+}
+.participant-item.answered-correct{
+  border-color:var(--green);
+  background:rgba(0,232,122,.08);
+  color:var(--green);
+}
+.participant-item.answered-wrong{
+  border-color:var(--red);
+  background:rgba(255,45,85,.08);
+  color:var(--txt);
+}
+.participant-name{
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:70px;
+}
+.participant-status{
+  font-size:10px;
+  opacity:.7;
+}
+.participant-badge{
+  font-size:14px;
+  flex-shrink:0;
+}
+
 /* ===== DRAMATIC OVERLAY ===== */
 #drama{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .15s}
 #drama.show{opacity:1;pointer-events:auto}
@@ -310,6 +371,7 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
   .room-header{flex-direction:column;align-items:flex-start}
   .players-list{gap:8px}
   .player-slot{flex:1 1 100px;max-width:none}
+  .participants-grid{grid-template-columns:repeat(auto-fit,minmax(80px,1fr))}
 }
 
 .sep{width:100%;max-width:900px;height:1px;background:rgba(255,255,255,.06);margin:20px auto}
@@ -334,6 +396,19 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 
 .loading-bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(to right,var(--accent),var(--red),var(--purple));animation:loading 2s infinite;width:100%;z-index:20000}
 @keyframes loading{0%{width:0}50%{width:100%}100%{width:100%}}
+
+/* ===== BUTTON NEXT SOAL DI ROOM ===== */
+.room-control-buttons{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  margin-top:20px;
+  flex-wrap:wrap;
+}
+.room-control-buttons .btn{
+  width:auto;
+  min-width:160px;
+}
 </style>
 </head>
 <body>
@@ -445,6 +520,9 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
       <h2>ROOM ONLINE</h2>
       <div class="field"><label>Nama Kamu</label><input type="text" id="in-nama-room" placeholder="Masukkan nama"/></div>
       <div class="field"><label>Kelas</label><input type="text" id="in-kelas-room" placeholder="Contoh: 8A"/></div>
+      <div class="field"><label>Jumlah Soal</label>
+        <select id="in-jumlah-room"><option value="5">5 Soal</option><option value="10" selected>10 Soal</option><option value="15">15 Soal</option><option value="20">20 Soal</option></select>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
         <button class="btn btn-primary" onclick="createRoom()">+ BUAT ROOM</button>
         <button class="btn btn-ghost" onclick="showScreen('screen-room-join')">JOIN ROOM →</button>
@@ -507,6 +585,15 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
       <div class="q-text" id="q-text">Memuat soal...</div>
     </div>
     <div class="options-grid" id="options-grid"></div>
+    
+    <!-- ===== ROOM PARTICIPANTS (tampil di soal room mode) ===== -->
+    <div id="room-participants-section" style="display:none">
+      <div class="room-participants">
+        <h4>📋 PESERTA YANG SUDAH MENJAWAB</h4>
+        <div class="participants-grid" id="participants-grid"></div>
+      </div>
+      <div class="room-control-buttons" id="room-control-buttons"></div>
+    </div>
   </div>
 
   <!-- ========== RESULT ========== -->
@@ -684,6 +771,9 @@ const STATE = {
   isHost:false,
   gameActive:false,
   totalCorrect:0, totalWrong:0,
+  roomAnsweredUsers:{}, // track siapa yang sudah jawab di soal saat ini
+  roomJumlahSoal:10, // jumlah soal yang dipilih host
+  canAdvanceQuestion:false, // bisa lanjut soal atau tidak
 };
 
 const DEMO_SOAL = [
@@ -798,6 +888,8 @@ function loadQuestion(){
   }
   const soal = STATE.soalGame[STATE.idx];
   STATE.answered = false;
+  STATE.roomAnsweredUsers = {}; // reset answered users tracking
+  STATE.canAdvanceQuestion = false;
   document.getElementById('q-num').textContent = `SOAL ${STATE.idx+1}/${STATE.soalGame.length}`;
   document.getElementById('q-text').textContent = soal.soal;
   console.log(`[SOAL LOADED] ID:${soal.id} | Kunci:${soal.kunci} | Soal:${soal.soal.substring(0,50)}...`);
@@ -817,6 +909,7 @@ function loadQuestion(){
   document.getElementById('ai-thinking').style.display='none';
   startTimer(soal);
   if(STATE.mode==='ai'){ scheduleAI(soal); }
+  if(STATE.mode==='room'){ renderRoomParticipants(); }
 }
 
 function startTimer(soal){
@@ -867,10 +960,14 @@ async function answer(choice, soal){
         buzzer:{ pid:STATE.myId, nama:STATE.nama, qIdx:STATE.idx, isCorrect:isCorrect, pts:pts, ts:Date.now() }
       });
     }catch(e){}
+    // Broadcast answer
+    STATE.roomAnsweredUsers[STATE.myId] = { nama:STATE.nama, isCorrect:isCorrect };
     await broadcastScore();
     showBuzzerPopup(STATE.nama, isCorrect, true, pts);
-    renderScoreBoard();
-    setTimeout(()=>{ hideBuzzerPopup(); nextQuestion(); }, 2800);
+    renderRoomParticipants();
+    // Tunggu tombol next dari host atau timeout
+    STATE.canAdvanceQuestion = false;
+    setTimeout(()=>{ hideBuzzerPopup(); }, 2800);
   } else {
     showDrama(isCorrect, pts, timeBonus);
     renderScoreBoard();
@@ -893,12 +990,69 @@ function timeUp(soal){
   STATE.answered = true;
   STATE.totalWrong++;
   disableOpts();
-  showDramaTimeout();
-  setTimeout(()=>{ hideDrama(); nextQuestion(); }, 2000);
+  if(STATE.mode==='room'){
+    showDramaTimeout();
+    setTimeout(()=>{ hideDrama(); }, 2000);
+  } else {
+    showDramaTimeout();
+    setTimeout(()=>{ hideDrama(); nextQuestion(); }, 2000);
+  }
 }
 
 function disableOpts(){ document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true); }
 function nextQuestion(){ STATE.idx++; loadQuestion(); }
+
+// ===== ROOM PARTICIPANTS DISPLAY =====
+function renderRoomParticipants(){
+  const section = document.getElementById('room-participants-section');
+  const grid = document.getElementById('participants-grid');
+  const controlsDiv = document.getElementById('room-control-buttons');
+  
+  if(STATE.mode !== 'room'){
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'block';
+  grid.innerHTML = '';
+  
+  // Get all players in room
+  const allPlayers = Object.entries(STATE.players).map(([id,p])=>({
+    id,
+    nama:p.nama,
+    answered:STATE.roomAnsweredUsers[id] ? true : false,
+    isCorrect:STATE.roomAnsweredUsers[id] ? STATE.roomAnsweredUsers[id].isCorrect : null
+  }));
+  
+  allPlayers.forEach(player=>{
+    const item = document.createElement('div');
+    item.className = 'participant-item';
+    
+    if(player.answered){
+      if(player.isCorrect){
+        item.classList.add('answered-correct');
+        item.innerHTML = `<span class="participant-badge">✅</span><span class="participant-name">${player.nama}</span>`;
+      } else {
+        item.classList.add('answered-wrong');
+        item.innerHTML = `<span class="participant-badge">❌</span><span class="participant-name">${player.nama}</span>`;
+      }
+    } else {
+      item.innerHTML = `<span class="participant-badge">⏳</span><span class="participant-name">${player.nama}</span>`;
+    }
+    
+    grid.appendChild(item);
+  });
+  
+  // Render control buttons (hanya untuk host)
+  controlsDiv.innerHTML = '';
+  if(STATE.isHost){
+    const btnNext = document.createElement('button');
+    btnNext.className = 'btn btn-primary';
+    btnNext.textContent = '⚡ SOAL BERIKUTNYA';
+    btnNext.onclick = ()=>{ nextQuestion(); };
+    controlsDiv.appendChild(btnNext);
+  }
+}
 
 // =====================================================
 //   AI OPPONENT
@@ -1145,12 +1299,14 @@ function fbUnlisten(){
 async function createRoom(){
   const nama  = document.getElementById('in-nama-room').value.trim();
   const kelas = document.getElementById('in-kelas-room').value.trim();
+  const jumlahSoal = parseInt(document.getElementById('in-jumlah-room').value);
   if(!nama){ toast('⚠ Masukkan nama!'); return; }
   toast('⏳ Membuat room...');
   STATE.nama=nama; STATE.kelas=kelas||'-'; STATE.roomCode=genRoomCode(); STATE.isHost=true;
   STATE.myId='p_'+Date.now(); STATE.players={}; STATE.scores={}; STATE.gameActive=false;
+  STATE.roomJumlahSoal = jumlahSoal;
   const roomPath = `/rooms/${STATE.roomCode}`;
-  await fbSet(roomPath,{host:STATE.myId,status:'lobby',players:{[STATE.myId]:{nama,kelas:kelas||'-',score:0,ts:Date.now()}},state:null});
+  await fbSet(roomPath,{host:STATE.myId,status:'lobby',players:{[STATE.myId]:{nama,kelas:kelas||'-',score:0,ts:Date.now()}},state:null,jumlahSoal:jumlahSoal});
   window.addEventListener('beforeunload',()=>fbDelete(roomPath));
   enterLobby(); listenRoom();
 }
@@ -1164,9 +1320,9 @@ async function joinRoom(){
   const roomData = await fbGet(`/rooms/${code}`);
   if(!roomData){ toast('❌ Room tidak ditemukan!'); return; }
   if(roomData.status==='playing'){ toast('❌ Game sudah dimulai!'); return; }
-  // ── PERUBAHAN: hapus batasan 4 pemain, semua bisa join ──
   STATE.roomCode=code; STATE.nama=nama; STATE.kelas=kelas||'-'; STATE.isHost=false;
   STATE.myId='p_'+Date.now(); STATE.players={}; STATE.scores={}; STATE.gameActive=false;
+  STATE.roomJumlahSoal = roomData.jumlahSoal || 10;
   await fbPatch(`/rooms/${code}/players`,{[STATE.myId]:{nama,kelas:kelas||'-',score:0,ts:Date.now()}});
   enterLobby(); listenRoom();
 }
@@ -1193,7 +1349,7 @@ function listenRoom(){
       });
       if(!STATE.scores[STATE.myId]) STATE.scores[STATE.myId]=0;
       renderLobbyPlayers();
-      if(STATE.gameActive) renderScoreBoard();
+      if(STATE.gameActive) { renderScoreBoard(); renderRoomParticipants(); }
     }
     if(room.status==='playing' && room.state && !STATE.gameActive){
       STATE.soalGame=room.state.soalGame; STATE.gameActive=true; STATE.idx=0;
@@ -1209,8 +1365,9 @@ function listenRoom(){
         const isMe = bz.pid === STATE.myId;
         if(!isMe && !STATE.answered){
           STATE.answered=true; clearInterval(STATE.timer); disableOpts();
+          STATE.roomAnsweredUsers[bz.pid] = { nama:bz.nama, isCorrect:bz.isCorrect };
           showBuzzerPopup(bz.nama, bz.isCorrect, false);
-          setTimeout(()=>{ hideBuzzerPopup(); nextQuestion(); }, 2800);
+          renderRoomParticipants();
         } else if(isMe){
           showBuzzerPopup(bz.nama, bz.isCorrect, true);
         }
@@ -1229,7 +1386,8 @@ async function startRoomGame(){
   toast('⏳ Memulai game...');
   STATE.diff='normal'; STATE.maxTime=20; STATE.mode='room';
   if(STATE.soalAll.length === 0){ STATE.soalAll = DEMO_SOAL.map(s=>({...s})); }
-  const shuffled = [...STATE.soalAll].sort(()=>Math.random()-.5).slice(0,10);
+  const jumlahSoal = STATE.roomJumlahSoal || 10;
+  const shuffled = [...STATE.soalAll].sort(()=>Math.random()-.5).slice(0,jumlahSoal);
   STATE.soalGame=shuffled; STATE.idx=0; STATE.totalCorrect=0; STATE.totalWrong=0;
   STATE.gameActive=true; STATE.scores[STATE.myId]=0;
   const scoreReset={};
@@ -1239,7 +1397,6 @@ async function startRoomGame(){
   showScreen('screen-game'); renderScoreBoard(); loadQuestion();
 }
 
-// ── PERUBAHAN: render semua pemain yang ada, tanpa slot kosong ──
 function renderLobbyPlayers(){
   const cont = document.getElementById('lobby-players');
   cont.innerHTML = '';
@@ -1258,7 +1415,6 @@ function renderLobbyPlayers(){
       cont.appendChild(slot);
     });
   }
-  // ── PERUBAHAN: status cukup tampilkan jumlah pemain tanpa batas ──
   const count = pids.length;
   document.getElementById('lobby-status').textContent = `${count} PEMAIN`;
 }
