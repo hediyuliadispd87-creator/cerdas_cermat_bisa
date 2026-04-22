@@ -71,8 +71,36 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 .form-box h2{font-family:var(--font-head);font-size:32px;letter-spacing:4px;margin-bottom:28px;color:var(--accent)}
 .field{margin-bottom:18px}
 .field label{display:block;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;font-family:var(--font-mono)}
-.field input,.field select{width:100%;background:#0a0b1a;border:1px solid rgba(255,255,255,.12);color:var(--txt);padding:12px 16px;font-family:var(--font-body);font-size:16px;outline:none;transition:border-color .2s}
+
+/* ── PERBAIKAN DROPDOWN: pointer-events & z-index ── */
+.field input,
+.field select{
+  width:100%;
+  background:#0a0b1a;
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--txt);
+  padding:12px 16px;
+  font-family:var(--font-body);
+  font-size:16px;
+  outline:none;
+  transition:border-color .2s;
+  position:relative;
+  z-index:10;
+  -webkit-appearance:menulist;
+  appearance:menulist;
+  cursor:pointer;
+}
+.field select option{
+  background:#111327;
+  color:var(--txt);
+  font-size:15px;
+  padding:8px;
+}
 .field input:focus,.field select:focus{border-color:var(--accent)}
+/* Pastikan .field tidak ada overflow:hidden yg memotong dropdown */
+.field{overflow:visible;}
+/* ── END PERBAIKAN ── */
+
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;font-family:var(--font-head);font-size:20px;letter-spacing:3px;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase;width:100%}
 .btn-primary{background:var(--accent);color:#000}
@@ -293,18 +321,40 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
   <div class="screen" id="screen-setup">
     <div class="form-box">
       <h2 id="setup-title">SETUP</h2>
-      <div class="field"><label>Nama Kamu</label><input type="text" id="in-nama" placeholder="Masukkan nama"/></div>
+      <div class="field">
+        <label>Nama Kamu</label>
+        <input type="text" id="in-nama" placeholder="Masukkan nama" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+      </div>
       <div class="row2">
-        <div class="field"><label>Kelas</label><input type="text" id="in-kelas" placeholder="Contoh: 8A"/></div>
-        <div class="field"><label>Jumlah Soal</label>
-          <select id="in-jumlah"><option value="5">5 Soal</option><option value="10" selected>10 Soal</option><option value="15">15 Soal</option><option value="20">20 Soal</option></select>
+        <div class="field">
+          <label>Kelas</label>
+          <input type="text" id="in-kelas" placeholder="Contoh: 8A" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+        </div>
+        <div class="field">
+          <label>Jumlah Soal</label>
+          <select id="in-jumlah" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+            <option value="5">5 Soal</option>
+            <option value="10" selected>10 Soal</option>
+            <option value="15">15 Soal</option>
+            <option value="20">20 Soal</option>
+          </select>
         </div>
       </div>
-      <div class="field"><label>Tingkat Kesulitan</label>
-        <select id="in-diff"><option value="easy">🟢 Mudah (30 detik/soal)</option><option value="normal" selected>🟡 Normal (20 detik/soal)</option><option value="hard">🔴 Susah (10 detik/soal)</option></select>
+      <div class="field">
+        <label>Tingkat Kesulitan</label>
+        <select id="in-diff" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+          <option value="easy">🟢 Mudah (30 detik/soal)</option>
+          <option value="normal" selected>🟡 Normal (20 detik/soal)</option>
+          <option value="hard">🔴 Susah (10 detik/soal)</option>
+        </select>
       </div>
-      <div id="ai-level-field" class="field" style="display:none"><label>Level AI</label>
-        <select id="in-ailevel"><option value="easy">🤖 Pemula (55% benar)</option><option value="normal" selected>🤖 Normal (70% benar)</option><option value="hard">🤖 Expert (88% benar)</option></select>
+      <div id="ai-level-field" class="field" style="display:none">
+        <label>Level AI</label>
+        <select id="in-ailevel" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+          <option value="easy">🤖 Pemula (55% benar)</option>
+          <option value="normal" selected>🤖 Normal (70% benar)</option>
+          <option value="hard">🤖 Expert (88% benar)</option>
+        </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
         <button class="btn btn-ghost" onclick="showScreen('screen-home')">← Kembali</button>
@@ -317,10 +367,22 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
   <div class="screen" id="screen-room-setup">
     <div class="form-box">
       <h2>ROOM ONLINE</h2>
-      <div class="field"><label>Nama Kamu</label><input type="text" id="in-nama-room" placeholder="Masukkan nama"/></div>
-      <div class="field"><label>Kelas</label><input type="text" id="in-kelas-room" placeholder="Contoh: 8A"/></div>
-      <div class="field"><label>Jumlah Soal</label>
-        <select id="in-jumlah-room"><option value="5">5 Soal</option><option value="10" selected>10 Soal</option><option value="15">15 Soal</option><option value="20">20 Soal</option></select>
+      <div class="field">
+        <label>Nama Kamu</label>
+        <input type="text" id="in-nama-room" placeholder="Masukkan nama" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+      </div>
+      <div class="field">
+        <label>Kelas</label>
+        <input type="text" id="in-kelas-room" placeholder="Contoh: 8A" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+      </div>
+      <div class="field">
+        <label>Jumlah Soal</label>
+        <select id="in-jumlah-room" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+          <option value="5">5 Soal</option>
+          <option value="10" selected>10 Soal</option>
+          <option value="15">15 Soal</option>
+          <option value="20">20 Soal</option>
+        </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
         <button class="btn btn-primary" onclick="createRoom()">+ BUAT ROOM</button>
@@ -334,9 +396,18 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
   <div class="screen" id="screen-room-join">
     <div class="form-box">
       <h2>JOIN ROOM</h2>
-      <div class="field"><label>Kode Room</label><input type="text" id="in-roomcode" placeholder="Masukkan kode 4 digit" maxlength="6" style="text-transform:uppercase;letter-spacing:6px;font-size:24px;text-align:center"/></div>
-      <div class="field"><label>Nama Kamu</label><input type="text" id="in-nama-join" placeholder="Masukkan nama"/></div>
-      <div class="field"><label>Kelas</label><input type="text" id="in-kelas-join" placeholder="Contoh: 8A"/></div>
+      <div class="field">
+        <label>Kode Room</label>
+        <input type="text" id="in-roomcode" placeholder="Masukkan kode 4 digit" maxlength="6" style="text-transform:uppercase;letter-spacing:6px;font-size:24px;text-align:center" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+      </div>
+      <div class="field">
+        <label>Nama Kamu</label>
+        <input type="text" id="in-nama-join" placeholder="Masukkan nama" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+      </div>
+      <div class="field">
+        <label>Kelas</label>
+        <input type="text" id="in-kelas-join" placeholder="Contoh: 8A" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <button class="btn btn-ghost" onclick="showScreen('screen-room-setup')">← Kembali</button>
         <button class="btn btn-primary" onclick="joinRoom()">MASUK ⚡</button>
@@ -474,6 +545,31 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 
 <script>
 // =====================================================
+//   PERBAIKAN DROPDOWN: stopPropagation global untuk
+//   semua select dan input di dalam form-box
+// =====================================================
+document.addEventListener('DOMContentLoaded', function() {
+  // Tangkap semua select dan input agar event tidak bubble ke parent
+  function fixFormInteraction() {
+    document.querySelectorAll('.form-box select, .form-box input').forEach(function(el) {
+      // Gunakan capture phase agar lebih prioritas
+      ['mousedown','click','touchstart','touchend','focus','pointerdown'].forEach(function(evtName) {
+        el.addEventListener(evtName, function(e) {
+          e.stopPropagation();
+        }, true);
+      });
+    });
+  }
+  fixFormInteraction();
+
+  // Observe DOM changes untuk form yang mungkin ditampilkan dinamis
+  const observer = new MutationObserver(function() {
+    fixFormInteraction();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+});
+
+// =====================================================
 //   INTRO VIDEO
 // =====================================================
 const introScreen  = document.getElementById('intro-screen');
@@ -579,8 +675,6 @@ const STATE = {
   scores:{}, players:{},
   myId:'p1', roomCode:'', isHost:false, gameActive:false,
   totalCorrect:0, totalWrong:0,
-  // ── PERBAIKAN: roomAnsweredUsers disinkron dari Firebase ──
-  // Struktur: { pid: { nama, isCorrect } }
   roomAnsweredUsers:{},
   roomJumlahSoal:10,
   roomQuestionWon:false,
@@ -611,9 +705,7 @@ const DEMO_SOAL = [
 ];
 
 // =====================================================
-//   ANSWERS POLLING — khusus sinkronisasi status ❌/✅
-//   Polling /answers setiap 1.5 detik saat game aktif
-//   Lebih reliable dari SSE patch untuk node anak
+//   ANSWERS POLLING
 // =====================================================
 let answersPollInterval = null;
 
@@ -626,9 +718,7 @@ function startAnswersPolling(){
       if(!answersData) return;
       let changed = false;
       Object.entries(answersData).forEach(([pid, ans])=>{
-        // Hanya proses jawaban untuk soal yang sedang aktif
         if(ans.qIdx !== STATE.idx) return;
-        // Skip jika sudah ada (tidak overwrite)
         if(STATE.roomAnsweredUsers[pid]) return;
         STATE.roomAnsweredUsers[pid] = { nama: ans.nama, isCorrect: ans.isCorrect };
         changed = true;
@@ -748,8 +838,6 @@ function loadQuestion(){
   hideRoomCorrectPopup();
 
   if(STATE.mode==='room'&&STATE.isHost){
-    // Reset node 'answers' untuk soal baru — INI KUNCI PERBAIKAN
-    // Setiap soal baru, node answers di-clear agar tidak ada sisa data soal lama
     fbSet(`/rooms/${STATE.roomCode}/answers`, null).catch(()=>{});
     fbPatch(`/rooms/${STATE.roomCode}`,{ currentQIdx: STATE.idx, buzzer:null }).catch(()=>{});
   }
@@ -798,7 +886,7 @@ function updateTimerUI(t){
 }
 
 // =====================================================
-//   answer() — PERBAIKAN UTAMA: TULIS KE /answers NODE
+//   answer()
 // =====================================================
 async function answer(choice, soal){
   if(STATE.answered) return;
@@ -822,9 +910,6 @@ async function answer(choice, soal){
   }
 
   if(STATE.mode==='room'){
-    // ── PERBAIKAN UTAMA ──
-    // Tulis jawaban ke node /answers/{myId} di Firebase
-    // Semua peserta (termasuk HP lain) akan sync via listenRoom → /answers
     const answerPayload = {
       pid: STATE.myId,
       nama: STATE.nama,
@@ -834,13 +919,9 @@ async function answer(choice, soal){
       ts: Date.now()
     };
 
-    // Update local state dulu agar UI langsung update
     STATE.roomAnsweredUsers[STATE.myId] = { nama:STATE.nama, isCorrect };
     renderRoomParticipants();
 
-    // Tulis ke Firebase — dua operasi paralel:
-    // 1) /answers/{myId} — dibaca semua peserta untuk status peserta
-    // 2) /buzzer jika benar — untuk popup winner
     try{
       await fbPatch(`/rooms/${STATE.roomCode}/answers`, {
         [STATE.myId]: answerPayload
@@ -879,7 +960,6 @@ function timeUp(soal){
   disableOpts();
 
   if(STATE.mode==='room'){
-    // Catat timeout ke Firebase juga agar peserta lain tahu
     const timeoutPayload = {
       pid: STATE.myId,
       nama: STATE.nama,
@@ -1210,7 +1290,7 @@ function enterLobby(){
 }
 
 // =====================================================
-//   listenRoom — PERBAIKAN: sync dari /answers node
+//   listenRoom
 // =====================================================
 function listenRoom(){
   let lastProcessedQIdx = -1;
@@ -1220,7 +1300,6 @@ function listenRoom(){
     const room=snap.data;
     if(!room) return;
 
-    // Sync players
     if(room.players){
       STATE.players={};
       Object.entries(room.players).forEach(([id,p])=>{
@@ -1232,7 +1311,6 @@ function listenRoom(){
       if(STATE.gameActive){ renderScoreBoard(); renderRoomParticipants(); }
     }
 
-    // Game start
     if(room.status==='playing'&&room.state&&!STATE.gameActive){
       STATE.soalGame=room.state.soalGame; STATE.gameActive=true; STATE.idx=0;
       STATE.totalCorrect=0; STATE.totalWrong=0; STATE.mode='room'; STATE.diff='normal'; STATE.maxTime=20;
@@ -1245,7 +1323,6 @@ function listenRoom(){
       renderScoreBoard(); loadQuestion();
     }
 
-    // Peserta ikuti currentQIdx dari host
     if(!STATE.isHost && STATE.gameActive && room.currentQIdx !== undefined){
       const hostQIdx = room.currentQIdx;
       if(hostQIdx > STATE.idx){
@@ -1258,54 +1335,37 @@ function listenRoom(){
       }
     }
 
-    // ── PERBAIKAN UTAMA: Sync status jawaban dari /answers ──
-    // Node answers berisi semua jawaban peserta untuk soal saat ini
-    // Ini yang memastikan tanda ❌/✅ muncul di SEMUA HP peserta
     if(room.answers && STATE.gameActive){
       let participantsChanged = false;
       Object.entries(room.answers).forEach(([pid, ans])=>{
-        // Hanya proses jawaban untuk soal yang sedang aktif
         if(ans.qIdx !== STATE.idx) return;
-        // Skip jika sudah ada di local state (tidak perlu update ulang)
         if(STATE.roomAnsweredUsers[pid]) return;
-
         STATE.roomAnsweredUsers[pid] = { nama:ans.nama, isCorrect:ans.isCorrect };
         participantsChanged = true;
-
-        // Update skor peserta lain (bukan diri sendiri, skor sendiri sudah di-update lokal)
         if(pid !== STATE.myId && ans.isCorrect){
           STATE.scores[pid] = (STATE.scores[pid]||0) + ans.pts;
         }
       });
-
       if(participantsChanged){
         renderRoomParticipants();
         if(STATE.gameActive) renderScoreBoard();
       }
     }
 
-    // Buzzer handler (popup winner — jawaban benar pertama)
     if(room.buzzer&&STATE.gameActive){
       const bz=room.buzzer;
       const qIdx=bz.qIdx;
-
       if(qIdx===STATE.idx && qIdx!==lastProcessedQIdx && bz.isCorrect===true){
         lastProcessedQIdx=qIdx;
         STATE.roomQuestionWon=true;
         STATE.roomWinnerId=bz.pid;
-
-        // Pastikan winner juga masuk ke roomAnsweredUsers
         if(!STATE.roomAnsweredUsers[bz.pid]){
           STATE.roomAnsweredUsers[bz.pid]={nama:bz.nama,isCorrect:true};
         }
-
         clearInterval(STATE.timer);
         disableOpts();
-
         const isMe=bz.pid===STATE.myId;
         showRoomCorrectPopup(bz.nama,bz.pts,isMe);
-
-        // Update skor winner jika bukan diri sendiri (skor sendiri sudah di-update di answer())
         if(!isMe){
           STATE.scores[bz.pid]=(STATE.scores[bz.pid]||0)+bz.pts;
         }
@@ -1339,7 +1399,7 @@ async function startRoomGame(){
     state:{soalGame:shuffled},
     currentQIdx:0,
     buzzer:null,
-    answers:null   // Pastikan answers kosong saat game mulai
+    answers:null
   });
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-game').classList.add('active');
