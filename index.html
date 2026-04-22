@@ -72,7 +72,6 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 .field{margin-bottom:18px}
 .field label{display:block;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;font-family:var(--font-mono)}
 
-/* ── PERBAIKAN DROPDOWN: pointer-events & z-index ── */
 .field input,
 .field select{
   width:100%;
@@ -86,9 +85,23 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
   transition:border-color .2s;
   position:relative;
   z-index:10;
+  cursor:pointer;
+}
+/* Hilangkan spinner bawaan browser untuk input number */
+.field input[type="number"]::-webkit-inner-spin-button,
+.field input[type="number"]::-webkit-outer-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+.field input[type="number"]{
+  -moz-appearance:textfield;
+  appearance:textfield;
+  cursor:text;
+  letter-spacing:2px;
+}
+.field select{
   -webkit-appearance:menulist;
   appearance:menulist;
-  cursor:pointer;
 }
 .field select option{
   background:#111327;
@@ -97,9 +110,10 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
   padding:8px;
 }
 .field input:focus,.field select:focus{border-color:var(--accent)}
-/* Pastikan .field tidak ada overflow:hidden yg memotong dropdown */
 .field{overflow:visible;}
-/* ── END PERBAIKAN ── */
+
+/* Hint teks kecil di bawah input number */
+.field-hint{font-family:var(--font-mono);font-size:11px;color:var(--dim);letter-spacing:1px;margin-top:6px;}
 
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 28px;font-family:var(--font-head);font-size:20px;letter-spacing:3px;cursor:pointer;border:none;transition:all .2s;text-transform:uppercase;width:100%}
@@ -332,12 +346,9 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
         </div>
         <div class="field">
           <label>Jumlah Soal</label>
-          <select id="in-jumlah" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-            <option value="5">5 Soal</option>
-            <option value="10" selected>10 Soal</option>
-            <option value="15">15 Soal</option>
-            <option value="20">20 Soal</option>
-          </select>
+          <!-- ✅ DIUBAH: dari dropdown menjadi input angka -->
+          <input type="number" id="in-jumlah" value="10" min="1" max="50" placeholder="Contoh: 10" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+          <div class="field-hint">Min 1 · Maks 50</div>
         </div>
       </div>
       <div class="field">
@@ -377,12 +388,9 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
       </div>
       <div class="field">
         <label>Jumlah Soal</label>
-        <select id="in-jumlah-room" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-          <option value="5">5 Soal</option>
-          <option value="10" selected>10 Soal</option>
-          <option value="15">15 Soal</option>
-          <option value="20">20 Soal</option>
-        </select>
+        <!-- ✅ DIUBAH: dari dropdown menjadi input angka -->
+        <input type="number" id="in-jumlah-room" value="10" min="1" max="50" placeholder="Contoh: 10" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
+        <div class="field-hint">Min 1 · Maks 50</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
         <button class="btn btn-primary" onclick="createRoom()">+ BUAT ROOM</button>
@@ -545,14 +553,11 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 
 <script>
 // =====================================================
-//   PERBAIKAN DROPDOWN: stopPropagation global untuk
-//   semua select dan input di dalam form-box
+//   PERBAIKAN DROPDOWN: stopPropagation global
 // =====================================================
 document.addEventListener('DOMContentLoaded', function() {
-  // Tangkap semua select dan input agar event tidak bubble ke parent
   function fixFormInteraction() {
     document.querySelectorAll('.form-box select, .form-box input').forEach(function(el) {
-      // Gunakan capture phase agar lebih prioritas
       ['mousedown','click','touchstart','touchend','focus','pointerdown'].forEach(function(evtName) {
         el.addEventListener(evtName, function(e) {
           e.stopPropagation();
@@ -561,11 +566,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   fixFormInteraction();
-
-  // Observe DOM changes untuk form yang mungkin ditampilkan dinamis
-  const observer = new MutationObserver(function() {
-    fixFormInteraction();
-  });
+  const observer = new MutationObserver(function() { fixFormInteraction(); });
   observer.observe(document.body, { childList: true, subtree: true });
 });
 
@@ -812,6 +813,7 @@ function goMode(mode){
 
 // =====================================================
 //   GAME START (SOLO/AI)
+//   ✅ Validasi input angka jumlah soal
 // =====================================================
 async function startGame(){
   const nama=document.getElementById('in-nama').value.trim();
@@ -819,7 +821,12 @@ async function startGame(){
   if(!nama){ toast('⚠ Masukkan nama kamu!'); return; }
   STATE.nama=nama; STATE.kelas=kelas||'-'; STATE.diff=document.getElementById('in-diff').value;
   STATE.aiLevel=document.getElementById('in-ailevel')?.value||'normal';
-  const jumlah=parseInt(document.getElementById('in-jumlah').value);
+
+  // ✅ Ambil nilai dari input number, bukan select
+  let jumlah = parseInt(document.getElementById('in-jumlah').value);
+  if(isNaN(jumlah) || jumlah < 1){ toast('⚠ Jumlah soal minimal 1!'); return; }
+  if(jumlah > 50){ toast('⚠ Jumlah soal maksimal 50!'); return; }
+
   STATE.maxTime={easy:30,normal:20,hard:10}[STATE.diff];
   if(STATE.soalAll.length===0) STATE.soalAll=DEMO_SOAL.map(s=>({...s}));
   const shuffled=[...STATE.soalAll].sort(()=>Math.random()-.5);
@@ -1228,12 +1235,16 @@ function fbUnlisten(){ if(fbEventSource){ fbEventSource.close(); fbEventSource=n
 
 // =====================================================
 //   ROOM FUNCTIONS
+//   ✅ Validasi input number jumlah soal untuk room
 // =====================================================
 async function createRoom(){
   const nama=document.getElementById('in-nama-room').value.trim();
   const kelas=document.getElementById('in-kelas-room').value.trim();
-  const jumlahSoal=parseInt(document.getElementById('in-jumlah-room').value);
+  let jumlahSoal=parseInt(document.getElementById('in-jumlah-room').value);
   if(!nama){ toast('⚠ Masukkan nama!'); return; }
+  if(isNaN(jumlahSoal) || jumlahSoal < 1){ toast('⚠ Jumlah soal minimal 1!'); return; }
+  if(jumlahSoal > 50){ toast('⚠ Jumlah soal maksimal 50!'); return; }
+
   toast('⏳ Membuat room...');
   STATE.nama=nama; STATE.kelas=kelas||'-'; STATE.roomCode=genRoomCode(); STATE.isHost=true;
   STATE.myId='p_'+Date.now(); STATE.players={}; STATE.scores={}; STATE.gameActive=false;
