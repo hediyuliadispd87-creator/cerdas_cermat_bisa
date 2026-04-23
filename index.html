@@ -517,8 +517,8 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
     </div>
     <div id="lb-cache-info" style="font-family:var(--font-mono);font-size:11px;color:var(--dim);letter-spacing:1px;margin-bottom:14px;min-height:16px"></div>
     <table class="lb-table">
-      <thead><tr><th>#</th><th>NAMA</th><th>KELAS</th><th>POIN</th></tr></thead>
-      <tbody id="lb-body"><tr><td colspan="4" style="text-align:center;color:var(--dim);padding:32px">Memuat...</td></tr></tbody>
+      <thead><tr><th>#</th><th>NAMA</th><th>KELAS</th><th>POIN</th><th>STATUS</th></tr></thead>
+      <tbody id="lb-body"><tr><td colspan="5" style="text-align:center;color:var(--dim);padding:32px">Memuat...</td></tr></tbody>
     </table>
     <div style="margin-top:20px"><button class="btn btn-ghost" style="width:auto" onclick="showScreen('screen-home')">← HOME</button></div>
   </div>
@@ -1451,13 +1451,35 @@ async function leaveRoom(){
 //   LEADERBOARD
 // =====================================================
 const LB_CACHE={data:null,time:0,TTL:60000};
-function lbSkeleton(){
-  return Array(5).fill(0).map((_,i)=>`<tr><td><span class="lb-rank">${i+1}</span></td><td><span style="display:inline-block;width:${80+Math.random()*60}px;height:14px;background:rgba(255,255,255,.07);border-radius:2px;animation:skPulse 1.2s ${i*0.1}s infinite alternate"></span></td><td><span style="display:inline-block;width:36px;height:12px;background:rgba(255,255,255,.05);border-radius:2px"></span></td><td><span style="display:inline-block;width:48px;height:18px;background:rgba(249,224,0,.08);border-radius:2px"></span></td></tr>`).join('');
+
+function getStatus(point) {
+  if (point <= 99999) return { text: 'Pengamat', color: '#888888' };
+  if (point <= 499999) return { text: 'Pelajar Aktif', color: '#00e87a' };
+  if (point <= 999999) return { text: 'Bintang Kelas', color: '#00b4ff' };
+  if (point <= 1999999) return { text: 'Juara Umum', color: '#f9e000' };
+  if (point <= 3499999) return { text: 'Teladan', color: '#ff9f43' };
+  if (point <= 4999999) return { text: 'Inspirator', color: '#bf5fff' };
+  return { text: 'Visioner TOP GLOBAL', color: '#ff2d55' };
 }
+
+function lbSkeleton(){
+  return Array(5).fill(0).map((_,i)=>`<tr><td><span class="lb-rank">${i+1}</span></td><td><span style="display:inline-block;width:${80+Math.random()*60}px;height:14px;background:rgba(255,255,255,.07);border-radius:2px;animation:skPulse 1.2s ${i*0.1}s infinite alternate"></span></td><td><span style="display:inline-block;width:36px;height:12px;background:rgba(255,255,255,.05);border-radius:2px"></span></td><td><span style="display:inline-block;width:48px;height:18px;background:rgba(249,224,0,.08);border-radius:2px"></span></td><td><span style="display:inline-block;width:64px;height:12px;background:rgba(255,255,255,.05);border-radius:2px"></span></td></tr>`).join('');
+}
+
 function renderLbRows(data){
   const rankEmoji=['🥇','🥈','🥉'];
-  return data.slice(0,20).map((row,i)=>`<tr><td><span class="lb-rank ${i<3?'r'+(i+1):''}">${rankEmoji[i]||i+1}</span></td><td class="lb-name">${row.nama}</td><td style="font-family:var(--font-mono);font-size:13px;color:var(--dim)">${row.kelas}</td><td><span class="lb-pts">${row.point}</span></td></tr>`).join('');
+  return data.slice(0,20).map((row,i)=>{
+    const status = getStatus(row.point);
+    return `<tr>
+      <td><span class="lb-rank ${i<3?'r'+(i+1):''}">${rankEmoji[i]||i+1}</span></td>
+      <td class="lb-name">${row.nama}</td>
+      <td style="font-family:var(--font-mono);font-size:13px;color:var(--dim)">${row.kelas}</td>
+      <td><span class="lb-pts">${row.point}</span></td>
+      <td style="color:${status.color}; font-family:var(--font-mono); font-size:12px; letter-spacing:1px;">${status.text}</td>
+    </tr>`;
+  }).join('');
 }
+
 async function loadLeaderboard(forceRefresh=false){
   showScreen('screen-lb');
   const body=document.getElementById('lb-body');
@@ -1470,20 +1492,20 @@ async function loadLeaderboard(forceRefresh=false){
     info.innerHTML=`<span style="color:var(--green)">⚡ Cache</span> · diperbarui ${age}s lalu · <span style="cursor:pointer;color:var(--accent)" onclick="loadLeaderboard(true)">refresh</span>`;
     return;
   }
-  if(!STATE.gasUrl){ body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:32px">⚠ URL GAS belum diset.</td></tr>'; info.innerHTML=''; return; }
+  if(!STATE.gasUrl){ body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:32px">⚠ URL GAS belum diset.</td></tr>'; info.innerHTML=''; return; }
   body.innerHTML=lbSkeleton(); info.innerHTML='<span class="blink">⏳ Mengambil data...</span>';
   if(btnRef){ btnRef.disabled=true; btnRef.textContent='⏳'; }
   try{
     const controller=new AbortController(); const timeout=setTimeout(()=>controller.abort(),10000);
     const r=await fetch(STATE.gasUrl+'?action=getHasil',{signal:controller.signal}); clearTimeout(timeout);
     const d=await r.json();
-    if(d.status!=='ok'||!d.data.length){ body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--dim);padding:32px">Belum ada data.</td></tr>'; info.innerHTML=''; }
+    if(d.status!=='ok'||!d.data.length){ body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:32px">Belum ada data.</td></tr>'; info.innerHTML=''; }
     else { LB_CACHE.data=d.data; LB_CACHE.time=Date.now(); body.innerHTML=renderLbRows(d.data); info.innerHTML=`<span style="color:var(--green)">✅ Live</span> · ${d.data.length} pemain`; }
   }catch(e){
     if(e.name==='AbortError'){
       if(LB_CACHE.data){ body.innerHTML=renderLbRows(LB_CACHE.data); info.innerHTML=`<span style="color:var(--accent)">⚠ Timeout</span> · data lama`; }
-      else { body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red);padding:32px">⏰ Timeout</td></tr>'; info.innerHTML=''; }
-    } else { body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--red);padding:32px">❌ Gagal memuat</td></tr>'; info.innerHTML=''; }
+      else { body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--red);padding:32px">⏰ Timeout</td></tr>'; info.innerHTML=''; }
+    } else { body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--red);padding:32px">❌ Gagal memuat</td></tr>'; info.innerHTML=''; }
   }finally{ if(btnRef){ btnRef.disabled=false; btnRef.textContent='↻ Refresh'; } }
 }
 
