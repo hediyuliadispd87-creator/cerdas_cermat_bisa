@@ -87,7 +87,6 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
   z-index:10;
   cursor:pointer;
 }
-/* Hilangkan spinner bawaan browser untuk input number */
 .field input[type="number"]::-webkit-inner-spin-button,
 .field input[type="number"]::-webkit-outer-spin-button{
   -webkit-appearance:none;
@@ -112,7 +111,6 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 .field input:focus,.field select:focus{border-color:var(--accent)}
 .field{overflow:visible;}
 
-/* Hint teks kecil di bawah input number */
 .field-hint{font-family:var(--font-mono);font-size:11px;color:var(--dim);letter-spacing:1px;margin-top:6px;}
 
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -156,6 +154,37 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 .scorebox.enemy .sval{color:var(--red)}
 .q-num{font-family:var(--font-mono);font-size:12px;color:var(--dim);letter-spacing:2px}
 
+/* ===== READING PHASE INDICATOR ===== */
+#reading-phase-indicator{
+  display:none;
+  text-align:center;
+  padding:16px;
+  background:rgba(191,95,255,.1);
+  border:2px solid var(--purple);
+  border-radius:4px;
+  margin-bottom:16px;
+  animation:pulseReading 1s infinite;
+}
+#reading-phase-indicator.active{display:block}
+@keyframes pulseReading{
+  0%,100%{background:rgba(191,95,255,.1);border-color:var(--purple)}
+  50%{background:rgba(191,95,255,.2);border-color:#bf5fff}
+}
+#reading-phase-text{
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:2px;
+  color:var(--purple);
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+#reading-phase-timer{
+  font-family:var(--font-head);
+  font-size:24px;
+  color:var(--purple);
+  letter-spacing:2px;
+}
+
 .question-card{background:var(--panel);border:1px solid rgba(255,255,255,.08);padding:32px;margin-bottom:24px;position:relative;overflow:hidden}
 .question-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--red),var(--purple))}
 .q-text{font-size:clamp(16px,3vw,22px);font-weight:600;line-height:1.5;letter-spacing:.5px}
@@ -163,7 +192,8 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
 .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .opt-btn{background:var(--panel);border:2px solid rgba(255,255,255,.1);padding:18px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font-body);font-size:16px;font-weight:600;color:var(--txt);transition:all .2s;text-align:left;position:relative;overflow:hidden}
 .opt-btn:hover:not(:disabled){border-color:var(--accent);background:rgba(249,224,0,.05);transform:translateX(4px)}
-.opt-btn:disabled{cursor:not-allowed}
+.opt-btn:disabled{cursor:not-allowed;opacity:.5}
+.opt-btn.reading-disabled:hover{transform:none;background:var(--panel);border-color:rgba(255,255,255,.1)}
 .opt-badge{font-family:var(--font-head);font-size:22px;color:var(--accent);width:32px;flex-shrink:0;letter-spacing:1px}
 .opt-btn.correct{border-color:var(--green);background:rgba(0,232,122,.1);animation:correctFlash .6s ease}
 .opt-btn.wrong{border-color:var(--red);background:rgba(255,45,85,.1);animation:wrongShake .5s ease}
@@ -346,7 +376,6 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
         </div>
         <div class="field">
           <label>Jumlah Soal</label>
-          <!-- ✅ DIUBAH: dari dropdown menjadi input angka -->
           <input type="number" id="in-jumlah" value="10" min="1" max="50" placeholder="Contoh: 10" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
           <div class="field-hint">Min 1 · Maks 50</div>
         </div>
@@ -388,7 +417,6 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
       </div>
       <div class="field">
         <label>Jumlah Soal</label>
-        <!-- ✅ DIUBAH: dari dropdown menjadi input angka -->
         <input type="number" id="in-jumlah-room" value="10" min="1" max="50" placeholder="Contoh: 10" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()"/>
         <div class="field-hint">Min 1 · Maks 50</div>
       </div>
@@ -457,6 +485,13 @@ header{width:100%;max-width:900px;display:flex;align-items:center;justify-conten
       <div class="score-board" id="score-board"></div>
       <div class="q-num" id="q-num">SOAL 1/10</div>
     </div>
+
+    <!-- READING PHASE INDICATOR -->
+    <div id="reading-phase-indicator">
+      <div id="reading-phase-text">📖 BACA SOAL - TOMBOL TERKUNCI</div>
+      <div id="reading-phase-timer">15</div>
+    </div>
+
     <div id="ai-thinking" class="ai-bubble" style="display:none">
       🤖 AI sedang berpikir... <div class="ai-dots"><span></span><span></span><span></span></div>
     </div>
@@ -680,6 +715,10 @@ const STATE = {
   roomJumlahSoal:10,
   roomQuestionWon:false,
   roomWinnerId:null,
+  // ✅ NEW: Reading phase state
+  readingPhaseActive:false,
+  readingPhaseTimer:null,
+  readingPhaseTimeLeft:15,
 };
 
 const DEMO_SOAL = [
@@ -704,6 +743,59 @@ const DEMO_SOAL = [
   {id:19,soal:"Apa kepanjangan dari HTML?",opt_a:"Hyper Text Markup Language",opt_b:"High Text Markup Language",opt_c:"Hyper Transfer Markup Language",opt_d:"Hyper Text Modern Language",kunci:"A"},
   {id:20,soal:"Tahun berapakah Indonesia merdeka?",opt_a:"1943",opt_b:"1949",opt_c:"1945",opt_d:"1950",kunci:"C"},
 ];
+
+// =====================================================
+//   READING PHASE ENGINE (✅ NEW)
+// =====================================================
+function startReadingPhase(){
+  STATE.readingPhaseActive = true;
+  STATE.readingPhaseTimeLeft = 15;
+  const indicator = document.getElementById('reading-phase-indicator');
+  const timerEl = document.getElementById('reading-phase-timer');
+  
+  indicator.classList.add('active');
+  
+  // Disable all option buttons
+  disableAllOptionsForReading();
+  
+  // Clear any existing reading phase timer
+  if(STATE.readingPhaseTimer) clearInterval(STATE.readingPhaseTimer);
+  
+  STATE.readingPhaseTimer = setInterval(()=>{
+    STATE.readingPhaseTimeLeft--;
+    timerEl.textContent = STATE.readingPhaseTimeLeft;
+    
+    if(STATE.readingPhaseTimeLeft <= 0){
+      clearInterval(STATE.readingPhaseTimer);
+      endReadingPhase();
+    }
+  }, 1000);
+}
+
+function endReadingPhase(){
+  STATE.readingPhaseActive = false;
+  const indicator = document.getElementById('reading-phase-indicator');
+  indicator.classList.remove('active');
+  
+  // Enable all option buttons
+  enableAllOptionsForAnswering();
+  
+  toast('✅ Sekarang bisa menjawab! Mulai timer menjawab...', 1500, 'toast-info');
+}
+
+function disableAllOptionsForReading(){
+  document.querySelectorAll('.opt-btn').forEach(btn=>{
+    btn.disabled = true;
+    btn.classList.add('reading-disabled');
+  });
+}
+
+function enableAllOptionsForAnswering(){
+  document.querySelectorAll('.opt-btn').forEach(btn=>{
+    btn.disabled = false;
+    btn.classList.remove('reading-disabled');
+  });
+}
 
 // =====================================================
 //   ANSWERS POLLING
@@ -813,7 +905,6 @@ function goMode(mode){
 
 // =====================================================
 //   GAME START (SOLO/AI)
-//   ✅ Validasi input angka jumlah soal
 // =====================================================
 async function startGame(){
   const nama=document.getElementById('in-nama').value.trim();
@@ -822,7 +913,6 @@ async function startGame(){
   STATE.nama=nama; STATE.kelas=kelas||'-'; STATE.diff=document.getElementById('in-diff').value;
   STATE.aiLevel=document.getElementById('in-ailevel')?.value||'normal';
 
-  // ✅ Ambil nilai dari input number, bukan select
   let jumlah = parseInt(document.getElementById('in-jumlah').value);
   if(isNaN(jumlah) || jumlah < 1){ toast('⚠ Jumlah soal minimal 1!'); return; }
   if(jumlah > 50){ toast('⚠ Jumlah soal maksimal 50!'); return; }
@@ -838,7 +928,7 @@ async function startGame(){
 }
 
 // =====================================================
-//   QUESTION ENGINE
+//   QUESTION ENGINE (✅ UPDATED with reading phase)
 // =====================================================
 function loadQuestion(){
   if(STATE.idx>=STATE.soalGame.length){ endGame(); return; }
@@ -868,7 +958,11 @@ function loadQuestion(){
     grid.appendChild(btn);
   });
   document.getElementById('ai-thinking').style.display='none';
-  startTimer(soal);
+  
+  // ✅ NEW: Start reading phase FIRST, then answer phase
+  startReadingPhase();
+  // After reading phase ends, timer will start automatically
+  
   if(STATE.mode==='ai') scheduleAI(soal);
   if(STATE.mode==='room') renderRoomParticipants();
 }
@@ -893,9 +987,13 @@ function updateTimerUI(t){
 }
 
 // =====================================================
-//   answer()
+//   ANSWER (✅ CHECK reading phase)
 // =====================================================
 async function answer(choice, soal){
+  if(STATE.readingPhaseActive){ 
+    toast('⏳ Masih dalam fase membaca soal!', 1500, 'toast-timeout');
+    return; 
+  }
   if(STATE.answered) return;
   if(STATE.mode==='room'&&STATE.roomQuestionWon){
     toast('⚡ Sudah ada yang menjawab benar!',1500);
@@ -1058,7 +1156,7 @@ function hideRoomCorrectPopup(){ document.getElementById('room-correct-popup').c
 // =====================================================
 function scheduleAI(soal){
   const accuracy={easy:0.55,normal:0.70,hard:0.88}[STATE.aiLevel];
-  const minDelay=2000, maxDelay=STATE.maxTime*800;
+  const minDelay=2000+15000, maxDelay=STATE.maxTime*800+15000; // ✅ Added 15s reading phase
   const delay=minDelay+Math.random()*(maxDelay-minDelay);
   setTimeout(()=>{
     if(STATE.answered) return;
@@ -1092,7 +1190,7 @@ function showDrama(correct,pts,bonus){
     playSound('wrong');
     document.getElementById('drama-icon').textContent=['❌','💀','😭','🙈','😱'][Math.floor(Math.random()*5)];
     document.getElementById('drama-title').textContent=['SALAH!','KURANG!','MISS!','OOPS!','ZONK!'][Math.floor(Math.random()*5)];
-    document.getElementById('drama-sub').textContent='+0 POIN';
+    document.getElementById('drama-sub').textContent=`+0 POIN`;
     document.getElementById('drama-pts').textContent='';
     spawnParticles(false);
   }
@@ -1102,7 +1200,7 @@ function showDramaTimeout(){
   drama.className='drama show drama-wrong'; playSound('timeout');
   document.getElementById('drama-icon').textContent='⏰';
   document.getElementById('drama-title').textContent='WAKTU HABIS!';
-  document.getElementById('drama-sub').textContent='+0 POIN';
+  document.getElementById('drama-sub').textContent=`+0 POIN`;
   document.getElementById('drama-pts').textContent='';
   spawnParticles(false);
 }
@@ -1136,7 +1234,7 @@ function renderScoreBoard(){
 //   END GAME
 // =====================================================
 async function endGame(){
-  clearInterval(STATE.timer); STATE.gameActive=false; fbUnlisten(); stopLobbyPolling(); stopAnswersPolling();
+  clearInterval(STATE.timer); clearInterval(STATE.readingPhaseTimer); STATE.gameActive=false; fbUnlisten(); stopLobbyPolling(); stopAnswersPolling();
   if(STATE.mode==='room') await endGameRoom(); else await endGameSolo();
 }
 
@@ -1235,7 +1333,6 @@ function fbUnlisten(){ if(fbEventSource){ fbEventSource.close(); fbEventSource=n
 
 // =====================================================
 //   ROOM FUNCTIONS
-//   ✅ Validasi input number jumlah soal untuk room
 // =====================================================
 async function createRoom(){
   const nama=document.getElementById('in-nama-room').value.trim();
